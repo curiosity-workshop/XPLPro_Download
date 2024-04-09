@@ -39,6 +39,7 @@ public:
     void begin(XPLPro *xplpro);
 
     int addPin(int inPin, byte inMode, int inHandle);
+    int addPin(int inPin, byte inMode, int inHandle, int inElement);
 
     int getHandle(int inPin);
 
@@ -64,6 +65,7 @@ private:
       byte prevStatus;              //  last known status
       byte mode;
       int  handle;
+      int element;
       long int prevTime;            //  time of last change
 
   };
@@ -97,11 +99,21 @@ void XPLSwitches::clear(void)           // call this prior to adding pins if not
 
 int XPLSwitches::addPin(int inPin, byte inMode, int inHandle)
 {
+   
+
+    return addPin(inPin, inMode, inHandle, 0);
+
+
+}
+
+int XPLSwitches::addPin(int inPin, byte inMode, int inHandle, int inElement)
+{
     if (_switchCount >= XPLSWITCHES_MAXSWITCHES) return -1;
 
     _switches[_switchCount].arduinoPin = inPin;
     _switches[_switchCount].mode = inMode;
     _switches[_switchCount].handle = inHandle;
+    _switches[_switchCount].element = inElement;
     _switches[_switchCount].prevStatus = -1;        // This will force update to the plugin
     pinMode(inPin, INPUT_PULLUP);
 
@@ -109,6 +121,7 @@ int XPLSwitches::addPin(int inPin, byte inMode, int inHandle)
 
 
 }
+
 int XPLSwitches::getHandle(int inPin)
 {
     for (int i = 0; i < XPLSWITCHES_MAXSWITCHES; i++) if (_switches[i].arduinoPin == inPin) return _switches[i].handle;
@@ -137,11 +150,11 @@ void XPLSwitches::check(void)
          {
          
          case XPLSWITCHES_DATAREFWRITE:
-             _XP->datarefWrite(_switches[i].handle, pinValue);
+             _XP->datarefWrite(_switches[i].handle, pinValue, _switches[i].element);
              break;
 
          case XPLSWITCHES_DATAREFWRITE_INVERT:
-             _XP->datarefWrite(_switches[i].handle, !pinValue); 
+             _XP->datarefWrite(_switches[i].handle, !pinValue, _switches[i].element);
              break;
          
          case XPLSWITCHES_COMMANDTRIGGER:

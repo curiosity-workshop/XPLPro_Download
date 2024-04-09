@@ -25,8 +25,8 @@
               
 
 #define PIN_THROTTLE  A0
-#define PIN_PROP      A1
-#define PIN_MIXTURE   A2
+#define PIN_MIXTURE   A1
+
 
 XPLPro XP(&Serial);     
 
@@ -70,8 +70,7 @@ void xplRegister()
 
   pots.addPin(PIN_THROTTLE, XPLPOTS_DATAREFWRITE, XP.registerDataRef(F("sim/cockpit2/engine/actuators/throttle_ratio_all")), 10 ,0, 1024, 0, 1);
   pots.addPin(PIN_MIXTURE,  XPLPOTS_DATAREFWRITE, XP.registerDataRef(F("sim/cockpit2/engine/actuators/mixture_ratio_all")), 10, 0, 1024, 0, 1 );
-  pots.addPin(PIN_PROP,     XPLPOTS_DATAREFWRITE, XP.registerDataRef(F("sim/cockpit2/engine/actuators/prop_rotation_speed_rad_sec_all")), 10, 0, 1024, 77, 283);
- 
+  
  
 }
 

@@ -5,8 +5,13 @@
 //      discord:  https://discord.gg/gzXetjEST4
 //      patreon:  www.patreon.com/curiosityworkshop
 
-#ifndef XPLSwitches_h
-#define XPLSwitches_h
+// 22 March 2024 -- Small bug fix with addpin overload adding pincount twice
+// 15 March 2024 -- Added support for dataref arrays
+
+
+
+#ifndef XPLPotentiometers_h
+#define XPLPotentiometers_h
 
 // Parameters around the interface
 #define XPLPOTS_SENDTOHANDLER   0                   // Default is to send switch events to the supplied handler.  This always occurs regardless.
@@ -35,6 +40,7 @@ public:
     void begin(XPLPro *xplpro);
 
     int addPin(int inPin, int inMode, int inHandle, int inPrecision, int inLow, int inHigh, int outLow, int outHigh);
+    int addPin(int inPin, int inMode, int inHandle, int inElement, int inPrecision, int inLow, int inHigh, int outLow, int outHigh);
     void setUpdateRate(int inRate);
     int getHandle(int inPin);
 
@@ -60,6 +66,7 @@ private:
       int arduinoPin;                // connected pin
       int prevValue;              //  last known value
       int handle;                  // handle to dataref
+      int element;                  // if the dataref is an array, which element
       int mode;                     //  what to do with new data
       long int prevTime;            //  time of last change
       int precision;              // divide by this to reduce data flow
@@ -100,20 +107,28 @@ void XPLPotentiometers::setUpdateRate(int inRate)
 
 int XPLPotentiometers::addPin(int inPin, int inMode, int inHandle, int inPrecision, int inLow, int inHigh, int outLow, int outHigh)
 {
+    return addPin(inPin, inMode, inHandle, -1, inPrecision, inLow, inHigh, outLow, outHigh);
+
+}
+
+int XPLPotentiometers::addPin(int inPin, int inMode, int inHandle, int inElement, int inPrecision, int inLow, int inHigh, int outLow, int outHigh)
+{
     if (_potCount >= XPLPOTS_MAXPOTS) return -1;
 
     _pots[_potCount].arduinoPin = inPin;
     _pots[_potCount].precision = inPrecision;
     _pots[_potCount].mode = inMode;
     _pots[_potCount].handle = inHandle;
+    _pots[_potCount].element = inElement;
     _pots[_potCount].prevValue = -1;        // This will force update to the plugin
-    
+
     _XP->setScaling(inHandle, inLow, inHigh, outLow, outHigh);
 
     return _potCount++;
 
 
 }
+
 int XPLPotentiometers::getHandle(int inPin)
 {
     for (int i = 0; i < XPLPOTS_MAXPOTS; i++) if (_pots[i].arduinoPin == inPin) return _pots[i].handle;
@@ -144,7 +159,10 @@ void XPLPotentiometers::check(void)
          {
          
          case XPLPOTS_DATAREFWRITE:
-             _XP->datarefWrite(_pots[i].handle, pinValue);
+             
+             if (_pots[i].element < 0) _XP->datarefWrite(_pots[i].handle, pinValue);
+             else                      _XP->datarefWrite(_pots[i].handle, pinValue, _pots[i].element);
+
              break;
 
                  

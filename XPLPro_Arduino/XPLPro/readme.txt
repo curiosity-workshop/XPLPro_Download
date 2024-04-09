@@ -23,6 +23,13 @@ Known issues:
 
 Updates:
   
+	-- minor bug fixes in examples
+	-- added XPLSequencer for making timed macro style events.  Airplane startup?
+        -- added XPLProArraysExample 
+        -- added array capability to XPLPotentiometers.h and XPLSwitches.h.  See the example for information
+
+
+
     06 Mar 2024:
 
         -- Examples are now contained within the xplpro library folder to ease distribution and so they will show up in the arduino IDE examples under xplpro.
@@ -54,3 +61,4 @@ Updates:
 
         -- Add scaling to outbound (from the plugin) data.  Inbound data currently supported.
         -- When reengaging devices datarefs are not updated
+        -- floating point data transfer issues

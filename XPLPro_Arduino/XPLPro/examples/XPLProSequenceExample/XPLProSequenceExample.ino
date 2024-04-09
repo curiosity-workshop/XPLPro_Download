@@ -22,12 +22,17 @@
 
 #include <arduino.h>
 #include <XPLPro.h>              //  include file for the X-plane direct interface 
+
+#define XPLSEQUENCER_MAXEVENTS     10                  //  Max amount of events to allow.  Default to 10 if not defined
+#include <XPLSequencer.h>         // for making timed sequences
+
 XPLPro XP(&Serial);      // create an instance of it
 
 
-long int startTime;
+void seqStartupHandler(int inItem);    // This will be called at the requested times
+XPLSequencer seqStartup(&seqStartupHandler);    // this will be the sequence for startup.  We can make additional ones as needed.
 
-#define PIN_TRIGGER      24        // momentary switch to trigger the sequence
+#define PIN_TRIGGER      45        // momentary switch to trigger the sequence
 
 int drefBeacon;         // this stores a handle to the beacon light dataref
 int drefNavLight;       // this stores a handle to the nav light dataref
@@ -61,14 +66,25 @@ void setup()
 void loop() 
 {
  
+  unsigned long timeNow;
+  unsigned long startTime;
+  timeNow = millis();
+
   XP.xloop();  //  needs to run every cycle.  
-
-  if (!digitalRead(PIN_TRIGGER)) sequenceTrigger();
-
-  sequenceProcess();
+  seqStartup.check(timeNow);
 
 
-  
+// *****************************************************************************************
+// everything after the next line will only occur every 100ms.  This will help debounce the switch
+// Alternatively we could utilize the XPLSwitches feature to handle switches for us
+// *****************************************************************************************
+  if (timeNow - startTime > 100) startTime = timeNow;   else return;                           
+
+  if (!digitalRead(PIN_TRIGGER)) seqStartup.trigger();
+
+
+
+    
 
 }
 
@@ -102,6 +118,12 @@ void xplRegister()
   drefThrottle = XP.registerDataRef(F("sim/cockpit2/engine/actuators/throttle_ratio") );
   cmdLdgLightToggle = XP.registerCommand(F("sim/lights/landing_lights_toggle") );
 
+  seqStartup.clear();
+  seqStartup.addEvent(100);       // first event will occur 100ms after trigger.
+  seqStartup.addEvent(2000);      // second event will occur 2 seconds after first event
+  seqStartup.addEvent(1000);      // third event will occur 1 second after the previous one
+  seqStartup.addEvent(2000);      // ...and so on.
+
  
 }
 
@@ -112,64 +134,16 @@ void xplShutdown()
 }
 
 
-/*
-   The following code handles the sequencing of the datarefs and commands.  This would be better to encapsulate into its own
-   class or at least its own file, but I put it here for simplicity in the example
-*/
-long int sequenceTimer;
-int sequenceActive;
-int sequenceCount;
 
-void sequenceTrigger()
+void seqStartupHandler(int inItem)
 {
-  sequenceTimer = millis();
-  sequenceActive = true;
-  sequenceCount = 0;
-
-  digitalWrite(LED_BUILTIN, HIGH);          // for information purposes, turn LED on while running the sequence
-
-}
-
-void sequenceProcess()
-{
-  if (!sequenceActive) return;
-
-  switch (sequenceCount) 
+  switch(inItem)
   {
-
-    case 0 :
-     if (millis() - sequenceTimer > 100)   
-     { XP.datarefWrite(drefBeacon, 1);        // turn on the beacon light
-       sequenceCount++;
-     }
-     break;
-
-    case 1 :
-      if (millis() - sequenceTimer > 2000)    
-      { XP.datarefWrite(drefNavLight, 1);   // 2 seconds later turn on the nav light
-        sequenceCount++;
-      }
-      break;
-    
-    case 2 :
-      if (millis() - sequenceTimer > 4000)     
-      { XP.commandTrigger(cmdLdgLightToggle);   // another 2 seconds later toggle the landing light on/off
-        sequenceCount++;
-      }
-      break;
-        
-    case 3 :
-      if (millis() - sequenceTimer > 6000)    
-      { XP.datarefWrite(drefThrottle, .2F);  // had to specify the type of .2 with "F" so it knows it is a float.  You could also do (float).2
-        sequenceCount++;
-      }
-      break;
-
-    default :
-      sequenceActive = false;
-      digitalWrite(LED_BUILTIN, LOW);       // sequence complete, turn off light
-
-
+    case 0 :  XP.datarefWrite(drefBeacon, 1);       break;  // turn on the beacon light
+    case 1 :  XP.datarefWrite(drefNavLight, 1);     break;  // turn on the nav light
+    case 2 :  XP.commandTrigger(cmdLdgLightToggle); break;  // toggle the landing light on/off
+    case 3 :  XP.datarefWrite(drefThrottle, .2F);   break;  // had to specify the type of .2 with "F" so it knows it is a float.  You could also do (float).2
   }
 
 }
+
