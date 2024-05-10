@@ -90,6 +90,20 @@ typedef const char XPString_t;
 //#define XPLREQUEST_REFRESH 'd'             // the plugin will call this once xplane is loaded in order to get fresh updates from arduino handles that write (reserve until we are sure it is unneeded)
 #define XPLREQUEST_UPDATES 'r'             // arduino is asking the plugin to update the specified dataref with rate and divider parameters
 #define XPLREQUEST_UPDATESARRAY 't'        // arduino is asking the plugin to update the specified array dataref with rate and divider parameters
+#define XPLREQUEST_UPDATES_TYPE 'y'       // 3/25/2024 update:  some datarefs (looking at you Zibo...) return multiple data types, We can force which one to receive here.
+#define XPLREQUEST_UPDATES_TYPE_ARRAY 'w'
+
+// these are the data types for the above requests that we can send.  These values come directly from the Xplane SDK.  The Dataref needs to support the type of data
+//          that we are requesting here, refer to the documentation for the dataref.  The XPLDirectError.log also reports the type of data each registered dataref
+//          returns, if that is helpful.
+    #define xplmType_Unknown	0	//  Data of a type the current XPLM doesn't do.
+    #define xplmType_Int	    1	//  A single 4 - byte integer, native endian.
+    #define xplmType_Float	    2	//  A single 4 - //byte float, native endian.
+    #define xplmType_Double	    4	//  A single 8 - byte double, native endian.
+    #define xplmType_FloatArray	8	//  An array of 4 - byte floats, native endian.
+    #define xplmType_IntArray	16  //	An array of 4 - byte integers, native endian.
+    #define xplmType_Data	    32  //	A variable block of data.
+
 #define XPLREQUEST_SCALING 'u'             // arduino requests the plugin apply scaling to the dataref values
 #define XPLREQUEST_DATAREFVALUE 'e'        // one off request for a dataref value.  Avoid doing this every loop, better to use REQUEST_UPDATES.  Either way, value will be sent via the inbound callback
 #define XPLCMD_RESET 'z'                   // Request a reset and reregistration from the plugin
@@ -200,6 +214,21 @@ public:
     /// @param arrayElement Array element to subscribe to
     void requestUpdates(int handle, int rate, float precision, int arrayElement);
 
+    /// @brief Request DataRef updates from the plugin
+    /// @param handle Handle of the DataRef to subscribe to
+    /// @param type Specific type of data to request, see header file
+    /// @param rate Maximum rate for updates to reduce traffic
+    /// @param precision Floating point precision
+    void requestUpdatesType(int handle, int type, int rate, float precision);
+
+    /// @brief Request DataRef updates from the plugin for an array DataRef
+    /// @param handle Handle of the DataRef to subscribe to
+    /// @param type Specific type of data to request, see header file
+    /// @param rate Maximum rate for updates to reduce traffic
+    /// @param precision Floating point precision
+    /// @param arrayElement Array element to subscribe to
+    void requestUpdatesType(int handle, int type, int rate, float precision, int arrayElement);
+
     /// @brief set scaling factor for a DataRef (offload mapping to the plugin)
     void setScaling(int handle, int inLow, int inHigh, int outLow, int outHigh);
 
@@ -249,7 +278,7 @@ private:
     int _parseInt(long *outTarget, char *inBuffer, int parameter);
     int _parseFloat(float *outTarget, char *inBuffer, int parameter);
     int _parseString(char *outBuffer, char *inBuffer, int parameter, int maxSize);
-    char* Xdtostrf(double val, signed char width, unsigned char prec, char* sout);
+    int Xdtostrf(double val, signed char width, unsigned char prec, char* sout);
 
     Stream *_streamPtr;
     const char *_deviceName;

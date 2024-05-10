@@ -16,7 +16,8 @@
       discord:  https://discord.gg/RacvaRFsMW
       patreon:  www.patreon.com/curiosityworkshop
       YouTube:  https://youtube.com/channel/UCISdHdJIundC-OSVAEPzQIQ
- * 
+      Facebook: https://www.facebook.com/curiosity.workshop42/
+ *
  * 
  */
 
@@ -32,8 +33,7 @@ XPLPro XP(&Serial);      // create an instance of it
 void seqStartupHandler(int inItem);    // This will be called at the requested times
 XPLSequencer seqStartup(&seqStartupHandler);    // this will be the sequence for startup.  We can make additional ones as needed.
 
-#define PIN_TRIGGER      45        // momentary switch to trigger the sequence
-
+int drefMasterBattery;
 int drefBeacon;         // this stores a handle to the beacon light dataref
 int drefNavLight;       // this stores a handle to the nav light dataref
 int drefThrottle;       // this stores a handle to the throttle position dataref
@@ -45,7 +45,7 @@ void setup()
 {
  
   pinMode(LED_BUILTIN, OUTPUT);     // built in LED on arduino board will turn on and off with the status of the beacon light
-  pinMode(PIN_TRIGGER, INPUT_PULLUP);       
+  //pinMode(PIN_TRIGGER, INPUT_PULLUP);       
   
   Serial.begin(XPL_BAUDRATE); // start serial interface.  Baudrate is specified in the header, dont change   
 
@@ -74,18 +74,6 @@ void loop()
   seqStartup.check(timeNow);
 
 
-// *****************************************************************************************
-// everything after the next line will only occur every 100ms.  This will help debounce the switch
-// Alternatively we could utilize the XPLSwitches feature to handle switches for us
-// *****************************************************************************************
-  if (timeNow - startTime > 100) startTime = timeNow;   else return;                           
-
-  if (!digitalRead(PIN_TRIGGER)) seqStartup.trigger();
-
-
-
-    
-
 }
 
 /*
@@ -102,7 +90,12 @@ void loop()
  void xplInboundHandler(inStruct *inData)
 {
  
-
+ if (inData->handle == drefMasterBattery)
+  { 
+    if (inData->inLong == 1)  seqStartup.trigger();     // The plugin keeps track of the data and only updates it when it changes.   
+  
+    
+  }     
    
 }
 
@@ -113,16 +106,21 @@ void loop()
 void xplRegister()         
 {
 
+  drefMasterBattery = XP.registerDataRef(F("sim/cockpit/electrical/battery_on") );
+  XP.requestUpdates(drefMasterBattery, 100, 1);       //  We need to subscribe for updates to the dataref if wanting to read them.  When they change the inbound handler will be called
+  
+
   drefBeacon = XP.registerDataRef(F("sim/cockpit2/switches/beacon_on") );    
   drefNavLight = XP.registerDataRef(F("sim/cockpit/electrical/nav_lights_on") );    
   drefThrottle = XP.registerDataRef(F("sim/cockpit2/engine/actuators/throttle_ratio") );
   cmdLdgLightToggle = XP.registerCommand(F("sim/lights/landing_lights_toggle") );
 
   seqStartup.clear();
-  seqStartup.addEvent(100);       // first event will occur 100ms after trigger.
+  seqStartup.addEvent(2000);       // first event will occur 2000ms after trigger.
   seqStartup.addEvent(2000);      // second event will occur 2 seconds after first event
   seqStartup.addEvent(1000);      // third event will occur 1 second after the previous one
   seqStartup.addEvent(2000);      // ...and so on.
+  seqStartup.addEvent(1000);
 
  
 }
@@ -134,15 +132,17 @@ void xplShutdown()
 }
 
 
-
+// This will be called for each scheduled event.  inItem is which event we are on in the sequence requested.
 void seqStartupHandler(int inItem)
 {
+  
   switch(inItem)
   {
     case 0 :  XP.datarefWrite(drefBeacon, 1);       break;  // turn on the beacon light
     case 1 :  XP.datarefWrite(drefNavLight, 1);     break;  // turn on the nav light
     case 2 :  XP.commandTrigger(cmdLdgLightToggle); break;  // toggle the landing light on/off
     case 3 :  XP.datarefWrite(drefThrottle, .2F);   break;  // had to specify the type of .2 with "F" so it knows it is a float.  You could also do (float).2
+    case 4 :  XP.sendSpeakMessage("Sequence Complete"); break;  
   }
 
 }

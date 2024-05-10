@@ -4,7 +4,9 @@
 //   To report problems, download updates and examples, suggest enhancements or get technical support, please visit:
 //      discord:  https://discord.gg/gzXetjEST4
 //      patreon:  www.patreon.com/curiosityworkshop
+//      facebook: https://www.facebook.com/curiosity.workshop42
 
+// 23 March 2024 -- Fixed bug where the first event would occur immediately rather than at its scheduled time
 // 22 March 2024 -- Initial release
 
 
@@ -110,6 +112,7 @@ void XPLSequencer::check(unsigned long inTimeNow)
 void XPLSequencer::trigger()
 {
     _sequenceCounter = 0;           // start the sequence
+    _previousEventTime = millis();
 }
 
 #endif

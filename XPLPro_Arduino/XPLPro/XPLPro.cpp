@@ -1,5 +1,5 @@
 // XPLPro.cpp
-// Created by Curiosity Workshop, Michael Gerlicher, 2023.
+// Created by Curiosity Workshop, Michael Gerlicher, 2023-2024.
 #include "XPLPro.h"
 
 XPLPro::XPLPro(Stream *device)
@@ -137,39 +137,36 @@ void XPLPro::datarefWrite(int handle, long value, int arrayElement)
 
 void XPLPro::datarefWrite(int handle, float value)
 {
-    if (handle < 0)
-    {
-        return;
-    }
-    char tBuf[20]; // todo:  rewrite to eliminate this buffer.  Write directly to _sendBuffer
-   
-    Xdtostrf(value, 0, XPL_FLOATPRECISION, tBuf);
-    sprintf(_sendBuffer, "%c%c,%i,%s%c",
-            XPL_PACKETHEADER,
-            XPLCMD_DATAREFUPDATEFLOAT,
-            handle,
-            tBuf,
-            XPL_PACKETTRAILER);
+    if (handle < 0) return;
+
+    char* s = _sendBuffer;
+    s += sprintf(_sendBuffer, "%c%c,%i,",
+        XPL_PACKETHEADER,
+        XPLCMD_DATAREFUPDATEFLOAT,
+        handle);
+    s += Xdtostrf(value, 0, XPL_FLOATPRECISION, s);
+    sprintf(s, "%c",
+        XPL_PACKETTRAILER);
     _transmitPacket();
 }
 
 void XPLPro::datarefWrite(int handle, float value, int arrayElement)
 {
-    if (handle < 0)
-    {
-        return;
-    }
-    char tBuf[20]; // todo:  rewrite to eliminate this buffer.  Write directly to _sendBuffer
-    Xdtostrf(value, 0, XPL_FLOATPRECISION, tBuf);
-    sprintf(_sendBuffer, "%c%c,%i,%s,%i%c",
-            XPL_PACKETHEADER,
-            XPLCMD_DATAREFUPDATEFLOATARRAY,
-            handle,
-            tBuf,
-            arrayElement,
-            XPL_PACKETTRAILER);
+    if (handle < 0) return;
+
+    char* s = _sendBuffer;
+    s += sprintf(_sendBuffer, "%c%c,%i,",
+        XPL_PACKETHEADER,
+        XPLCMD_DATAREFUPDATEFLOATARRAY,
+        handle);
+    s += Xdtostrf(value, 0, XPL_FLOATPRECISION, s);
+    sprintf(s, ",%i%c",
+        arrayElement,
+        XPL_PACKETTRAILER);
+
     _transmitPacket();
 }
+
 
 void XPLPro::_sendname()
 {
@@ -517,34 +514,78 @@ int XPLPro::registerCommand(XPString_t *commandName)
 
 void XPLPro::requestUpdates(int handle, int rate, float precision)
 {
-    char tBuf[20]; // todo:  rewrite to eliminate this buffer.  Write directly to _sendBuffer?
-    dtostrf(precision, 0, XPL_FLOATPRECISION, tBuf);
-    sprintf(_sendBuffer, "%c%c,%i,%i,%s%c",
-            XPL_PACKETHEADER,
-            XPLREQUEST_UPDATES,
-            handle,
-            rate,
-            tBuf,
-            XPL_PACKETTRAILER);
+    if (handle < 0) return;
+
+    char* s = _sendBuffer;
+    s += sprintf(_sendBuffer, "%c%c,%i,%i,",
+        XPL_PACKETHEADER,
+        XPLREQUEST_UPDATES,
+        handle,
+        rate);
+    s += Xdtostrf(precision, 0, XPL_FLOATPRECISION, s);
+    sprintf(s, "%c",
+        XPL_PACKETTRAILER);
     _transmitPacket();
 }
 
-void XPLPro::requestUpdates(int handle, int rate, float precision, int element)
+void XPLPro::requestUpdates(int handle, int rate, float precision, int arrayElement)
 {
-    char tBuf[20]; // todo:  rewrite to eliminate this buffer.  Write directly to _sendBuffer?
-    dtostrf(precision, 0, XPL_FLOATPRECISION, tBuf);
-    sprintf(_sendBuffer, "%c%c,%i,%i,%s,%i%c",
-            XPL_PACKETHEADER,
-            XPLREQUEST_UPDATESARRAY,
-            handle,
-            rate,
-            tBuf,
-            element,
-            XPL_PACKETTRAILER);
+    if (handle < 0) return;
+
+    char* s = _sendBuffer;
+    s += sprintf(_sendBuffer, "%c%c,%i,%i,",
+        XPL_PACKETHEADER,
+        XPLREQUEST_UPDATESARRAY,
+        handle,
+        rate);
+    s += Xdtostrf(precision, 0, XPL_FLOATPRECISION, s);
+    sprintf(s, ",%i%c",
+        arrayElement,
+        XPL_PACKETTRAILER);
+
     _transmitPacket();
 }
 
-void XPLPro::setScaling(int handle, int inLow, int inHigh, int outLow, int outHigh)
+
+void XPLPro::requestUpdatesType(int handle, int type, int rate, float precision)
+{
+    if (handle < 0) return;
+
+    char* s = _sendBuffer;
+    s += sprintf(_sendBuffer, "%c%c,%i,%i,%i,",
+        XPL_PACKETHEADER,
+        XPLREQUEST_UPDATES_TYPE,
+        handle,
+        type,
+        rate);
+    s += Xdtostrf(precision, 0, XPL_FLOATPRECISION, s);
+    sprintf(s, "%c",
+        XPL_PACKETTRAILER);
+    _transmitPacket();
+}
+
+void XPLPro::requestUpdatesType(int handle, int type, int rate, float precision, int arrayElement)
+{
+    if (handle < 0) return;
+
+    char* s = _sendBuffer;
+    s += sprintf(_sendBuffer, "%c%c,%i,%i,%i",
+        XPL_PACKETHEADER,
+        XPLREQUEST_UPDATES_TYPE_ARRAY,
+        handle,
+        type,
+        rate);
+    s += Xdtostrf(precision, 0, XPL_FLOATPRECISION, s);
+    sprintf(s, ",%i%c",
+        arrayElement,
+        XPL_PACKETTRAILER);
+
+    _transmitPacket();
+}
+
+
+
+void XPLPro::setScaling(int handle, int inLow, int inHigh, int outLow, int outHigh)     // Currently only active for OUTBOUND (from arduino) data
 {
     sprintf(_sendBuffer, "%c%c,%i,%i,%i,%i,%i%c",
             XPL_PACKETHEADER,
@@ -557,17 +598,17 @@ void XPLPro::setScaling(int handle, int inLow, int inHigh, int outLow, int outHi
             XPL_PACKETTRAILER);
     _transmitPacket();
 }
+
 // Re-creation of dtostrf for non-AVR boards
-char *XPLPro::Xdtostrf(double val, signed char width, unsigned char prec, char* sout) 
+// Returns: number of chars added after <sout> ('\0' not included)
+int XPLPro::Xdtostrf(double val, signed char width, unsigned char prec, char* sout)
 {
 #ifdef __AVR_ARCH__
-    return dtostrf(val, width, prec, sout);
+    dtostrf(val, width, prec, sout);
+    return strlen(sout);
 #else
     char fmt[20];
     sprintf(fmt, "%%%d.%df", width, prec);
-    sprintf(sout, fmt, val);
-    return sout;
+    return sprintf(sout, fmt, val);
 #endif
-
 }
-

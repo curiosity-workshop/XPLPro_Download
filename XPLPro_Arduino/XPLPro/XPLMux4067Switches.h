@@ -5,6 +5,8 @@
 //      discord:  https://discord.gg/gzXetjEST4
 //      patreon:  www.patreon.com/curiosityworkshop
 
+// 2024 May 7 update:  Removed bitmap vector to simplify code.  Thanks GioCC!
+
 #ifndef XPLMux4067Switches_h
 #define XPLMux4067Switches_h
 
@@ -57,27 +59,7 @@ private:
   int _pinS2;
   int _pinS3;
   int _pinSig;
-
-  int _muxChannel[16][4]=                   // this table reduces processing time and space
-  {
-    {0,0,0,0}, //channel 0
-    {1,0,0,0}, //channel 1
-    {0,1,0,0}, //channel 2
-    {1,1,0,0}, //channel 3
-    {0,0,1,0}, //channel 4
-    {1,0,1,0}, //channel 5
-    {0,1,1,0}, //channel 6
-    {1,1,1,0}, //channel 7
-    {0,0,0,1}, //channel 8
-    {1,0,0,1}, //channel 9
-    {0,1,0,1}, //channel 10
-    {1,1,0,1}, //channel 11
-    {0,0,1,1}, //channel 12
-    {1,0,1,1}, //channel 13
-    {0,1,1,1}, //channel 14
-    {1,1,1,1}  //channel 15
-  };
-
+   
   struct XPLSwitch
   {
       int muxPin;                     // connected pin
@@ -150,10 +132,12 @@ void XPLMux4067Switches::check(void)
   long int timeNow = millis();
   for (int i = 0; i < _switchCount; i++)
   { 
-    digitalWrite(_pinS0, _muxChannel[_switches[i].muxPin][0]);
-    digitalWrite(_pinS1, _muxChannel[_switches[i].muxPin][1]);
-    digitalWrite(_pinS2, _muxChannel[_switches[i].muxPin][2]);
-    digitalWrite(_pinS3, _muxChannel[_switches[i].muxPin][3]);
+       
+    const byte ch = _switches[i].muxPin;
+    digitalWrite(_pinS0, ch & 0x01);
+    digitalWrite(_pinS1, ch & 0x02);
+    digitalWrite(_pinS2, ch & 0x04);
+    digitalWrite(_pinS3, ch & 0x08);
     
     int pinValue = digitalRead(_pinSig);
 

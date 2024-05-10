@@ -21,13 +21,58 @@ Known issues:
 
     Remember to close your serial monitor if it is open, it will tie up the serial port and your device won't be found.
 
+Wish List
+
+    -- exclusion of com ports, some com port devices cause issues when opened/closed/opened
+
+
 Updates:
+
+    -- Data scaling now enabled for dataref values sent from the plugin to the arduino.
+
+    -- Improvement made to send only amount of digits requested with "precision" parameter on float datarefs, reducing dataflow from the plugin to the arduino.
+
+    -- Improvements made within the library to reduce creation of buffers for data transfer.  Thanks GioCC!
+
+    -- Logic put in to force the transmission of a subscribed dataref after "requestUpdates" has been called.  This improves synchronization issues.
+
+    -- Some datarefs return that they support multiple data types and may not update them all consistently (looking at you Zibo...).  We can now
+        specify the data type that we want when we request updates with the new functions:
+
+            /// @brief Request DataRef updates from the plugin
+            /// @param handle Handle of the DataRef to subscribe to
+            /// @param type Specific type of data to request, see header file
+            /// @param rate Maximum rate for updates to reduce traffic
+            /// @param precision Floating point precision
+                void requestUpdatesType(int handle, int type, int rate, float precision);
+
+            /// @brief Request DataRef updates from the plugin for an array DataRef
+            /// @param handle Handle of the DataRef to subscribe to
+            /// @param type Specific type of data to request, see header file
+            /// @param rate Maximum rate for updates to reduce traffic
+            /// @param precision Floating point precision
+            /// @param arrayElement Array element to subscribe to
+                void requestUpdatesType(int handle, int type, int rate, float precision, int arrayElement);
+
+         type can be one of the following xplane data types, as defined in the Xplane SDK:
+
+                #define xplmType_Int	    1	//  A single 4 - byte integer, native endian.
+                #define xplmType_Float	    2	//  A single 4 - //byte float, native endian.
+                #define xplmType_Double	    4	//  A single 8 - byte double, native endian.
+                #define xplmType_FloatArray	8	//  An array of 4 - byte floats, native endian.
+                #define xplmType_IntArray	16  //	An array of 4 - byte integers, native endian.
+                #define xplmType_Data	    32  //	A variable block of data.
+
+        You can continue to use the original requestUpdates functions, it will default to whatever type the dataref reports when registered.
+
+   -- Rewrite of the request updates functions to reduce iterations on each cycle, improving performance and simplicity of code
+    -- added debug messages (sent from XPLPro device) to the status window.  They also appear in the XPLProError.log file.
   
 	-- minor bug fixes in examples
 	-- added XPLSequencer for making timed macro style events.  Airplane startup?
         -- added XPLProArraysExample 
         -- added array capability to XPLPotentiometers.h and XPLSwitches.h.  See the example for information
-
+    -- Added other examples
 
 
     06 Mar 2024:
@@ -58,7 +103,9 @@ Updates:
 
 
         ToDo:
-
+        
         -- Add scaling to outbound (from the plugin) data.  Inbound data currently supported.
-        -- When reengaging devices datarefs are not updated
-        -- floating point data transfer issues
+        -- minor floating point data transfer issues
+	    -- Some serial devices that aren't programmed with XPLPro can cause crashes on subsequent loads.
+        -- Bug fix, datarefs are updated after subsequent device registrations (disengage/reengage)
+       
