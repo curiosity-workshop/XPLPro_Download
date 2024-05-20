@@ -5,6 +5,7 @@
 //      discord:  https://discord.gg/gzXetjEST4
 //      patreon:  www.patreon.com/curiosityworkshop
 
+// 2024 May 11 update: standardizing type definitions
 // 2024 May 7 update:  Removed bitmap vector to simplify code.  Thanks GioCC!
 
 #ifndef XPLMux4067Switches_h
@@ -32,13 +33,13 @@ public:
     /// @param inPinS2, Pin connection for s2
     /// @param inPinS3, Pin connection for s3
     /// @param muxHandler, function called when pin activity is detected, or NULL
-    XPLMux4067Switches(int inPinSig, int inPinS0, int inPinS1, int inPinS2, int inPinS3, void (*muxHandler)(int muxChannel, int muxValue));
+    XPLMux4067Switches(uint8_t inPinSig, uint8_t inPinS0, uint8_t inPinS1, uint8_t inPinS2, uint8_t inPinS3, void (*muxHandler)(uint8_t muxChannel, uint8_t muxValue));
 
     void begin(XPLPro* xplpro);
 
-    int addPin(int inPin, byte inMode, int inHandle);
+    int8_t addPin(uint8_t inPin, uint8_t inMode, unsigned int inHandle);
 
-    int getHandle(int inPin);
+    int8_t getHandle(uint8_t inPin);
 
   
     /// @brief Scan mux pins and call handler if any changes are detected.  Run regularly
@@ -49,24 +50,24 @@ public:
 private:
 
   XPLPro* _XP;          
-  int _maxSwitches;
-  int _switchCount;
+  unsigned int _maxSwitches;
+  unsigned int _switchCount;
 
-  void (*_muxHandler)(int muxChannel, int muxValue) = NULL;  // this function will be called when activity is detected on the mux
+  void (*_muxHandler)(uint8_t muxChannel, uint8_t muxValue) = NULL;  // this function will be called when activity is detected on the mux
    
-  int _pinS0;
-  int _pinS1;
-  int _pinS2;
-  int _pinS3;
-  int _pinSig;
+  uint8_t _pinS0;
+  uint8_t _pinS1;
+  uint8_t _pinS2;
+  uint8_t _pinS3;
+  uint8_t _pinSig;
    
   struct XPLSwitch
   {
-      int muxPin;                     // connected pin
-      byte prevStatus;              //  last known status
-      byte mode;
-      int  handle;
-      long int prevTime;            //  time of last change
+      uint8_t muxPin;                     // connected pin
+      uint8_t prevStatus;              //  last known status
+      uint8_t mode;
+      unsigned int  handle;
+      unsigned long prevTime;            //  time of last change
 
   };
 
@@ -75,7 +76,7 @@ private:
 };
 
 
-XPLMux4067Switches::XPLMux4067Switches(int inPinSig, int inPinS0, int inPinS1, int inPinS2, int inPinS3, void (*muxHandler)(int inChannel, int inValue))
+XPLMux4067Switches::XPLMux4067Switches(uint8_t inPinSig, uint8_t inPinS0, uint8_t inPinS1, uint8_t inPinS2, uint8_t inPinS3, void (*muxHandler)(uint8_t inChannel, uint8_t inValue))
 {
 
   _pinSig = inPinSig;         pinMode(_pinSig, INPUT_PULLUP); 
@@ -105,7 +106,7 @@ void XPLMux4067Switches::clear(void)           // call this prior to adding pins
 
 }
 
-int XPLMux4067Switches::addPin(int inPin, byte inMode, int inHandle)
+int8_t XPLMux4067Switches::addPin(uint8_t inPin, uint8_t inMode, unsigned int inHandle)
 {
     if (_switchCount >= _maxSwitches) return -1;
 
@@ -118,9 +119,9 @@ int XPLMux4067Switches::addPin(int inPin, byte inMode, int inHandle)
 
 }
 
-int XPLMux4067Switches::getHandle(int inPin)
+int8_t XPLMux4067Switches::getHandle(uint8_t inPin)
 {
-    for (int i = 0; i < _maxSwitches; i++) if (_switches[i].muxPin == inPin) return _switches[i].handle;
+    for (uint8_t i = 0; i < _maxSwitches; i++) if (_switches[i].muxPin == inPin) return _switches[i].handle;
     return -1;
 
 }
@@ -129,8 +130,8 @@ int XPLMux4067Switches::getHandle(int inPin)
 void XPLMux4067Switches::check(void)
 {
  
-  long int timeNow = millis();
-  for (int i = 0; i < _switchCount; i++)
+  unsigned long timeNow = millis();
+  for (uint8_t i = 0; i < _switchCount; i++)
   { 
        
     const byte ch = _switches[i].muxPin;
@@ -139,7 +140,7 @@ void XPLMux4067Switches::check(void)
     digitalWrite(_pinS2, ch & 0x04);
     digitalWrite(_pinS3, ch & 0x08);
     
-    int pinValue = digitalRead(_pinSig);
+    uint8_t pinValue = digitalRead(_pinSig);
 
     if (pinValue != _switches[i].prevStatus && timeNow - _switches[i].prevTime >= XPLMUX4067_DEBOUNCETIME)
     {

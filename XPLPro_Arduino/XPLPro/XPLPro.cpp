@@ -34,7 +34,7 @@ int XPLPro::xloop(void)
 }
 
 // TODO: is a return value necessary? These could also be void like for the datarefs
-int XPLPro::commandTrigger(int commandHandle, int triggerCount)
+int XPLPro::commandTrigger(cmd_handle commandHandle, int triggerCount)
 {
     if (commandHandle < 0)
     {
@@ -45,7 +45,7 @@ int XPLPro::commandTrigger(int commandHandle, int triggerCount)
     return 0;
 }
 
-int XPLPro::commandStart(int commandHandle)
+int XPLPro::commandStart(cmd_handle commandHandle)
 {
     if (commandHandle < 0)
     {
@@ -55,7 +55,7 @@ int XPLPro::commandStart(int commandHandle)
     return 0;
 }
 
-int XPLPro::commandEnd(int commandHandle)
+int XPLPro::commandEnd(cmd_handle commandHandle)
 {
     if (commandHandle < 0)
     {
@@ -95,7 +95,7 @@ void XPLPro::flightLoopResume(void)
 
 // these could be done better:
 
-void XPLPro::datarefWrite(int handle, int value)
+void XPLPro::datarefWrite(dref_handle handle, int value)
 {
     if (handle < 0)
     {
@@ -105,7 +105,7 @@ void XPLPro::datarefWrite(int handle, int value)
     _transmitPacket();
 }
 
-void XPLPro::datarefWrite(int handle, int value, int arrayElement)
+void XPLPro::datarefWrite(dref_handle handle, int value, int arrayElement)
 {
     if (handle < 0)
     {
@@ -115,7 +115,7 @@ void XPLPro::datarefWrite(int handle, int value, int arrayElement)
     _transmitPacket();
 }
 
-void XPLPro::datarefWrite(int handle, long value)
+void XPLPro::datarefWrite(dref_handle handle, long value)
 {
     if (handle < 0)
     {
@@ -125,7 +125,7 @@ void XPLPro::datarefWrite(int handle, long value)
     _transmitPacket();
 }
 
-void XPLPro::datarefWrite(int handle, long value, int arrayElement)
+void XPLPro::datarefWrite(dref_handle handle, long value, int arrayElement)
 {
     if (handle < 0)
     {
@@ -135,7 +135,7 @@ void XPLPro::datarefWrite(int handle, long value, int arrayElement)
     _transmitPacket();
 }
 
-void XPLPro::datarefWrite(int handle, float value)
+void XPLPro::datarefWrite(dref_handle handle, float value)
 {
     if (handle < 0) return;
 
@@ -150,7 +150,7 @@ void XPLPro::datarefWrite(int handle, float value)
     _transmitPacket();
 }
 
-void XPLPro::datarefWrite(int handle, float value, int arrayElement)
+void XPLPro::datarefWrite(dref_handle handle, float value, int arrayElement)
 {
     if (handle < 0) return;
 
@@ -167,6 +167,13 @@ void XPLPro::datarefWrite(int handle, float value, int arrayElement)
     _transmitPacket();
 }
 
+void XPLPro::datarefTouch(dref_handle handle)
+{
+    if (handle < 0)   return;
+   
+    sprintf(_sendBuffer, "%c%c,%i%c", XPL_PACKETHEADER, XPLREQUEST_DATAREFTOUCH, handle, XPL_PACKETTRAILER);
+    _transmitPacket();
+}
 
 void XPLPro::_sendname()
 {

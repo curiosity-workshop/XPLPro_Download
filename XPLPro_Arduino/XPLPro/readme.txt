@@ -28,6 +28,14 @@ Wish List
 
 Updates:
 
+    16 May 2024
+
+    -- added datarefTouch(dataref) method to ask the plugin to update specified dataref.  This is experimental, probably redundant and should be used sparingly lest
+        much dataflow be induced.  Only use this if you know why you might want to use it.
+
+
+    10 May 2024
+
     -- Data scaling now enabled for dataref values sent from the plugin to the arduino.
 
     -- Improvement made to send only amount of digits requested with "precision" parameter on float datarefs, reducing dataflow from the plugin to the arduino.

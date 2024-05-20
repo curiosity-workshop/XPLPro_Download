@@ -45,7 +45,7 @@
 // Package buffer size for send and receive buffer each.
 // If you need a few extra bytes of RAM it could be reduced, but it needs to
 // be as long as the longest dataref name + 10.  If you are using datarefs
-// that transfer strings it needs to be big enough for those too.  (default 200)
+// that transfer strings it needs to be big enough for those too.  (default 200, should be less than 256)
 #ifndef XPLMAX_PACKETSIZE_TRANSMIT
 #define XPLMAX_PACKETSIZE_TRANSMIT 200
 #endif
@@ -67,6 +67,9 @@ typedef const __FlashStringHelper XPString_t;
 typedef const char XPString_t;
 #endif
 
+typedef int  dref_handle;
+typedef int  cmd_handle;
+
 // Parameters around the interface
 #define XPL_BAUDRATE 115200   // Baudrate needed to match plugin
 #define XPL_RX_TIMEOUT 500    // Timeout for reception of one frame
@@ -87,7 +90,7 @@ typedef const char XPString_t;
 #define XPLRESPONSE_COMMAND 'C'            // Plugin responds with handle to command or - value if not found.  command handle, command name
 #define XPLCMD_PRINTDEBUG 'g'              // Plugin logs string sent from arduino
 #define XPLCMD_SPEAK 's'                   // plugin speaks string through xplane speech
-//#define XPLREQUEST_REFRESH 'd'             // the plugin will call this once xplane is loaded in order to get fresh updates from arduino handles that write (reserve until we are sure it is unneeded)
+#define XPLREQUEST_DATAREFTOUCH 'd'         // 05/16/2024 update: force an update to specified dataref.  EXPERIMENTAL and possibly redundant
 #define XPLREQUEST_UPDATES 'r'             // arduino is asking the plugin to update the specified dataref with rate and divider parameters
 #define XPLREQUEST_UPDATESARRAY 't'        // arduino is asking the plugin to update the specified array dataref with rate and divider parameters
 #define XPLREQUEST_UPDATES_TYPE 'y'       // 3/25/2024 update:  some datarefs (looking at you Zibo...) return multiple data types, We can force which one to receive here.
@@ -119,7 +122,7 @@ typedef const char XPString_t;
 
 struct inStruct // potentially 'class'
 {
-    int handle;
+    dref_handle handle;
     int type;
     int element;
     long inLong;
@@ -150,76 +153,80 @@ public:
     /// @brief Trigger a command once
     /// @param commandHandle of the command to trigger
     /// @return 0: OK, -1: command was not registered
-    int commandTrigger(int commandHandle) { return commandTrigger(commandHandle, 1); };
+    int commandTrigger(cmd_handle commandHandle) { return commandTrigger(commandHandle, 1); };
 
     /// @brief Trigger a command multiple times
     /// @param commandHandle Handle of the command to trigger
     /// @param triggerCount Number of times to trigger the command
     /// @return 0: OK, -1: command was not registered
-    int commandTrigger(int commandHandle, int triggerCount);
+    int commandTrigger(cmd_handle commandHandle, int triggerCount);
 
     /// @brief Start a command. All commandStart must be balanced with a commandEnd
     /// @param commandHandle Handle of the command to start
     /// @return 0: OK, -1: command was not registered
-    int commandStart(int commandHandle);
+    int commandStart(cmd_handle commandHandle);
 
     /// @brief End a command. All commandStart must be balanced with a commandEnd
     /// @param commandHandle Handle of the command to start
     /// @return 0: OK, -1: command was not registered
-    int commandEnd(int commandHandle);
+    int commandEnd(cmd_handle commandHandle);
 
     /// @brief Write an integer DataRef.
     /// @param handle Handle of the DataRef to write
     /// @param value Value to write to the DataRef
-    void datarefWrite(int handle, long value);
+    void datarefWrite(dref_handle handle, long value);
 
     /// @brief Write an integer DataRef. Maps to long DataRefs.
     /// @param handle Handle of the DataRef to write
     /// @param value Value to write to the DataRef
-    void datarefWrite(int handle, int value);
+    void datarefWrite(dref_handle handle, int value);
 
     /// @brief Write a Integer DataRef to an array element.
     /// @param handle Handle of the DataRef to write
     /// @param value Value to write to the DataRef
     /// @param arrayElement Array element to write to
-    void datarefWrite(int handle, long value, int arrayElement);
+    void datarefWrite(dref_handle handle, long value, int arrayElement);
 
     /// @brief Write a Integer DataRef to an array element. Maps to long DataRefs.
     /// @param handle Handle of the DataRef to write
     /// @param value Value to write to the DataRef
     /// @param arrayElement Array element to write to
-    void datarefWrite(int handle, int value, int arrayElement);
+    void datarefWrite(dref_handle handle, int value, int arrayElement);
 
     /// @brief Write a float DataRef.
     /// @param handle Handle of the DataRef to write
     /// @param value Value to write to the DataRef
-    void datarefWrite(int handle, float value);
+    void datarefWrite(dref_handle handle, float value);
 
     /// @brief Write a float DataRef to an array element.
     /// @param handle Handle of the DataRef to write
     /// @param value Value to write to the DataRef
     /// @param arrayElement Array element to write to
-    void datarefWrite(int handle, float value, int arrayElement);
+    void datarefWrite(dref_handle handle, float value, int arrayElement);
+   
+    /// @brief Force plugin to update dataref value.  Experimental and probably redundant, use sparingly!
+    /// @param handle Handle of the DataRef to write
+    void datarefTouch(dref_handle handle);
 
     /// @brief Request DataRef updates from the plugin
     /// @param handle Handle of the DataRef to subscribe to
     /// @param rate Maximum rate for updates to reduce traffic
     /// @param precision Floating point precision
-    void requestUpdates(int handle, int rate, float precision);
+    void requestUpdates(dref_handle handle, int rate, float precision);
 
     /// @brief Request DataRef updates from the plugin for an array DataRef
     /// @param handle Handle of the DataRef to subscribe to
     /// @param rate Maximum rate for updates to reduce traffic
     /// @param precision Floating point precision
     /// @param arrayElement Array element to subscribe to
-    void requestUpdates(int handle, int rate, float precision, int arrayElement);
+    void requestUpdates(dref_handle handle, int rate, float precision, int arrayElement);
 
     /// @brief Request DataRef updates from the plugin
     /// @param handle Handle of the DataRef to subscribe to
     /// @param type Specific type of data to request, see header file
     /// @param rate Maximum rate for updates to reduce traffic
     /// @param precision Floating point precision
-    void requestUpdatesType(int handle, int type, int rate, float precision);
+    void requestUpdatesType(dref_handle handle, int type, int rate, float precision);
 
     /// @brief Request DataRef updates from the plugin for an array DataRef
     /// @param handle Handle of the DataRef to subscribe to
@@ -227,10 +234,10 @@ public:
     /// @param rate Maximum rate for updates to reduce traffic
     /// @param precision Floating point precision
     /// @param arrayElement Array element to subscribe to
-    void requestUpdatesType(int handle, int type, int rate, float precision, int arrayElement);
+    void requestUpdatesType(dref_handle handle, int type, int rate, float precision, int arrayElement);
 
     /// @brief set scaling factor for a DataRef (offload mapping to the plugin)
-    void setScaling(int handle, int inLow, int inHigh, int outLow, int outHigh);
+    void setScaling(dref_handle handle, int inLow, int inHigh, int outLow, int outHigh);
 
     /// @brief Register a DataRef and obtain a handle
     /// @param datarefName Name of the DataRef (or abbreviation)
@@ -282,19 +289,19 @@ private:
 
     Stream *_streamPtr;
     const char *_deviceName;
-    byte _registerFlag;
-    byte _connectionStatus;
+    bool _registerFlag;
+    bool _connectionStatus;
     inStruct _inData;
 
     char _sendBuffer[XPLMAX_PACKETSIZE_TRANSMIT];
     char _receiveBuffer[XPLMAX_PACKETSIZE_RECEIVE];
-    int _receiveBufferBytesReceived;
+    uint8_t _receiveBufferBytesReceived;
 
     void (*_xplInitFunction)(void);  // this function will be called when the plugin is ready to receive binding requests
     void (*_xplStopFunction)(void);  // this function will be called with the plugin receives message or detects xplane flight model inactive
     void (*_xplInboundHandler)(inStruct *); // this function will be called when the plugin sends dataref values
 
-    int _handleAssignment;
+    dref_handle _handleAssignment;
  
 };
 
