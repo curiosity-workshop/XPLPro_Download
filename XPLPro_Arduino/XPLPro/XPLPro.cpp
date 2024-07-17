@@ -64,6 +64,29 @@ int XPLPro::commandEnd(cmd_handle commandHandle)
     _sendPacketVoid(XPLCMD_COMMANDEND, commandHandle);
     return 0;
 }
+void XPLPro::simulateKeyPress(int inKeyType, int inKey)
+{
+    sprintf(_sendBuffer, "%c%c,%i,%i,i%c", XPL_PACKETHEADER, XPLCMD_SPECIAL, XPLCMD_SPECIAL_SIMKEYPRESS, inKeyType, inKey, XPL_PACKETTRAILER);
+    _transmitPacket();
+}
+    
+void XPLPro::commandKeyStroke(XPLMCommandKeyID inKey)
+{
+    sprintf(_sendBuffer, "%c%c,%i,%i%c", XPL_PACKETHEADER, XPLCMD_SPECIAL, XPLCMD_SPECIAL_CMDKEYSTROKE, inKey, XPL_PACKETTRAILER);
+    _transmitPacket();
+}
+void XPLPro::commandButtonPress(XPLMCommandButtonID  inButton)
+{
+    sprintf(_sendBuffer, "%c%c,%i,%i%c", XPL_PACKETHEADER, XPLCMD_SPECIAL, XPLCMD_SPECIAL_CMDBUTTONPRESS, inButton, XPL_PACKETTRAILER);
+    _transmitPacket();
+}
+
+void XPLPro::commandButtonRelease(XPLMCommandButtonID  inButton)
+{
+    sprintf(_sendBuffer, "%c%c,%i,%i%c", XPL_PACKETHEADER, XPLCMD_SPECIAL, XPLCMD_SPECIAL_CMDBUTTONRELEASE, inButton, XPL_PACKETTRAILER);
+    _transmitPacket();
+}
+
 
 int XPLPro::connectionStatus()
 {
@@ -82,16 +105,28 @@ int XPLPro::sendSpeakMessage(const char *msg)
     return 1;
 }
 
-void XPLPro::flightLoopPause(void)              // experimental!  Do not use!
+void XPLPro::dataFlowPause(void)              // internal use please
 {
-    _sendPacketVoid(XPLCMD_FLIGHTLOOPPAUSE, 0);
+    _sendPacketVoid(XPLCMD_DATAFLOWPAUSE, _streamPtr->available());
 
 }
 
-void XPLPro::flightLoopResume(void)
+void XPLPro::dataFlowResume(void)
 {
-    _sendPacketVoid(XPLCMD_FLIGHTLOOPRESUME, 0);
+    _sendPacketVoid(XPLCMD_DATAFLOWRESUME, _streamPtr->available());
 }
+
+int XPLPro::getBufferStatus(void)
+{
+    return _streamPtr->available();
+}
+
+void XPLPro::setDataFlowSpeed(unsigned long inSpeed)
+{
+    sprintf(_sendBuffer, "%c%c,%ld%c", XPL_PACKETHEADER, XPLCMD_SETDATAFLOWSPEED, inSpeed, XPL_PACKETTRAILER);
+    _transmitPacket();
+}
+
 
 // these could be done better:
 
@@ -228,6 +263,7 @@ void XPLPro::_processSerial()
     _receiveBuffer[++_receiveBufferBytesReceived] = XPL_PACKETTRAILER;
     _receiveBuffer[++_receiveBufferBytesReceived] = 0; // old habits die hard.
     // at this point we should have a valid frame
+   
     _processPacket();
 }
 
@@ -283,6 +319,7 @@ void XPLPro::_processPacket()
     case XPLCMD_DATAREFUPDATEINT:
         _parseInt(&_inData.handle, _receiveBuffer, 2);
         _parseInt(&_inData.inLong, _receiveBuffer, 3);
+        _inData.type = xplmType_Int;
         _inData.inFloat = 0;
         _inData.element = 0;
         _xplInboundHandler(&_inData);
@@ -293,6 +330,7 @@ void XPLPro::_processPacket()
         _parseInt(&_inData.handle, _receiveBuffer, 2);
         _parseInt(&_inData.inLong, _receiveBuffer, 3);
         _parseInt(&_inData.element, _receiveBuffer, 4);
+        _inData.type = xplmType_IntArray;
         _inData.inFloat = 0;
         _xplInboundHandler(&_inData);
         break;
@@ -301,6 +339,7 @@ void XPLPro::_processPacket()
     case XPLCMD_DATAREFUPDATEFLOAT:
         _parseInt(&_inData.handle, _receiveBuffer, 2);
         _parseFloat(&_inData.inFloat, _receiveBuffer, 3);
+        _inData.type = xplmType_Float;
         _inData.inLong = 0;
         _inData.element = 0;
         _xplInboundHandler(&_inData);
@@ -311,6 +350,7 @@ void XPLPro::_processPacket()
         _parseInt(&_inData.handle, _receiveBuffer, 2);
         _parseFloat(&_inData.inFloat, _receiveBuffer, 3);
         _parseInt(&_inData.element, _receiveBuffer, 4);
+        _inData.type = xplmType_FloatArray;
         _inData.inLong = 0;
         _xplInboundHandler(&_inData);
         break;
@@ -319,9 +359,11 @@ void XPLPro::_processPacket()
         _parseInt(&_inData.handle, _receiveBuffer, 2);
         _parseInt(&_inData.strLength, _receiveBuffer, 3);
         _receiveNSerial(_inData.strLength);
+        _inData.type = xplmType_Data;
         _inData.inStr = _receiveBuffer;
-        
+       // dataFlowPause();                    // 2024 May 23:  Pause inbound data while we process
         _xplInboundHandler(&_inData);
+       // dataFlowResume();                   // 2024 May 23:  Resume inbound data flow
         break;
        
 
@@ -347,6 +389,12 @@ void XPLPro::_sendPacketVoid(int command, int handle) // just a command with a h
     _transmitPacket();
 }
 
+void XPLPro::_sendPacketVoid(int command) // Update 2024 May 23:  just a command 
+{
+    sprintf(_sendBuffer, "%c%c%c", XPL_PACKETHEADER, command, XPL_PACKETTRAILER);
+    _transmitPacket();
+}
+
 void XPLPro::_sendPacketString(int command, const char *str) // for a string
 {
     sprintf(_sendBuffer, "%c%c,\"%s\"%c", XPL_PACKETHEADER, command, str, XPL_PACKETTRAILER);
@@ -356,11 +404,12 @@ void XPLPro::_sendPacketString(int command, const char *str) // for a string
 void XPLPro::_transmitPacket(void)
 {
     _streamPtr->write(_sendBuffer);
-    if (strlen(_sendBuffer) == 64)
+    if (strlen(_sendBuffer) == 64)              // ToDo:  This could be more efficient with sprintf returns instead of measuring the buffer each time...
     {
         // apparently a bug in arduino with some boards when we transmit exactly 64 bytes. That took a while to track down...
         _streamPtr->print(" ");
     }
+    _streamPtr->flush();
 }
 
 int XPLPro::_parseString(char *outBuffer, char *inBuffer, int parameter, int maxSize)// todo:  Confirm 0 length strings ("") dont cause issues
@@ -395,7 +444,7 @@ int XPLPro::_parseString(char *outBuffer, char *inBuffer, int parameter, int max
     }
     strncpy(outBuffer, (char *)&inBuffer[cBeg], len);
     outBuffer[len] = 0;
-    // fprintf(errlog, "_parseString, pos: %i, cBeg: %i, deviceName: %s\n", pos, cBeg, target);
+    
     return 0;
 }
 
@@ -486,6 +535,9 @@ int XPLPro::registerDataRef(XPString_t *datarefName)
     {
         return XPL_HANDLE_INVALID;
     }
+
+  //  while (getBufferStatus) _processSerial();
+
 #if XPL_USE_PROGMEM
     sprintf(_sendBuffer, "%c%c,\"%S\"%c", XPL_PACKETHEADER, XPLREQUEST_REGISTERDATAREF, (wchar_t *)datarefName, XPL_PACKETTRAILER);
 #else
@@ -592,9 +644,9 @@ void XPLPro::requestUpdatesType(int handle, int type, int rate, float precision,
 
 
 
-void XPLPro::setScaling(int handle, int inLow, int inHigh, int outLow, int outHigh)     // Currently only active for OUTBOUND (from arduino) data
+void XPLPro::setScaling(int handle, long int inLow, long int inHigh, long int outLow, long int outHigh)     // Currently only active for OUTBOUND (from arduino) data
 {
-    sprintf(_sendBuffer, "%c%c,%i,%i,%i,%i,%i%c",
+    sprintf(_sendBuffer, "%c%c,%i,%li,%li,%li,%li%c",
             XPL_PACKETHEADER,
             XPLREQUEST_SCALING,
             handle,

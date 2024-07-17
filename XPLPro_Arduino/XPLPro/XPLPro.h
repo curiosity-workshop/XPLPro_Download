@@ -69,6 +69,8 @@ typedef const char XPString_t;
 
 typedef int  dref_handle;
 typedef int  cmd_handle;
+typedef int XPLMCommandKeyID;
+typedef int XPLMCommandButtonID;
 
 // Parameters around the interface
 #define XPL_BAUDRATE 115200   // Baudrate needed to match plugin
@@ -82,8 +84,9 @@ typedef int  cmd_handle;
 #define XPLRESPONSE_NAME 'n'               // Arduino responds with device name as initialized in the "begin" function
 #define XPLRESPONSE_VERSION 'v'             // Arduino responds with build date and time (when sketch was compiled)
 #define XPLCMD_SENDREQUEST 'Q'             // plugin sends this when it is ready to register bindings
-#define XPLCMD_FLIGHTLOOPPAUSE	    'p'		// stop flight loop while we register
-#define XPLCMD_FLIGHTLOOPRESUME  	'q'		// 
+#define XPLCMD_DATAFLOWPAUSE	'p'		// pause dataflow from plugin
+#define XPLCMD_DATAFLOWRESUME  	'q'		// 
+#define XPLCMD_SETDATAFLOWSPEED		'f'	// 07/09/2024:  Set maximum number of bytes to send per second.
 #define XPLREQUEST_REGISTERDATAREF 'b'     // Register a dataref
 #define XPLREQUEST_REGISTERCOMMAND 'm'     // Register a command
 #define XPLRESPONSE_DATAREF 'D'            // Plugin responds with handle to dataref or - value if not found.  dataref handle, dataref name
@@ -95,6 +98,13 @@ typedef int  cmd_handle;
 #define XPLREQUEST_UPDATESARRAY 't'        // arduino is asking the plugin to update the specified array dataref with rate and divider parameters
 #define XPLREQUEST_UPDATES_TYPE 'y'       // 3/25/2024 update:  some datarefs (looking at you Zibo...) return multiple data types, We can force which one to receive here.
 #define XPLREQUEST_UPDATES_TYPE_ARRAY 'w'
+#define XPLCMD_SPECIAL '$'                  // 06/02/2024:  Special commands that are useful but xplane considers deprecated.  Turns out they really are deprecated!
+#define XPLCMD_SPECIAL_SIMKEYPRESS      1   //              Simulate key press, parameters are  inKeyType, inKey as defined with xplane
+#define XPLCMD_SPECIAL_CMDKEYSTROKE     2   //              Command Keystroke, parameter is  XPLMCommandKeyID     inKey
+#define XPLCMD_SPECIAL_CMDBUTTONPRESS   3   //              Command Button Press, parameter isXPLMCommandButtonID  inButton
+#define XPLCMD_SPECIAL_CMDBUTTONRELEASE 4   //              Command Button Release, parameter isXPLMCommandButtonID  inButton
+                                            //                  Be sure to close all button presses with button releases!
+
 
 // these are the data types for the above requests that we can send.  These values come directly from the Xplane SDK.  The Dataref needs to support the type of data
 //          that we are requesting here, refer to the documentation for the dataref.  The XPLDirectError.log also reports the type of data each registered dataref
@@ -108,7 +118,7 @@ typedef int  cmd_handle;
     #define xplmType_Data	    32  //	A variable block of data.
 
 #define XPLREQUEST_SCALING 'u'             // arduino requests the plugin apply scaling to the dataref values
-#define XPLREQUEST_DATAREFVALUE 'e'        // one off request for a dataref value.  Avoid doing this every loop, better to use REQUEST_UPDATES.  Either way, value will be sent via the inbound callback
+//#define XPLREQUEST_DATAREFVALUE 'e'        // one off request for a dataref value.  Avoid doing this every loop, better to use REQUEST_UPDATES.  Either way, value will be sent via the inbound callback
 #define XPLCMD_RESET 'z'                   // Request a reset and reregistration from the plugin
 #define XPLCMD_DATAREFUPDATEINT '1'        // Int DataRef update
 #define XPLCMD_DATAREFUPDATEFLOAT '2'      // Float DataRef update
@@ -170,6 +180,11 @@ public:
     /// @param commandHandle Handle of the command to start
     /// @return 0: OK, -1: command was not registered
     int commandEnd(cmd_handle commandHandle);
+
+    void simulateKeyPress(int inKeyType, int inKey);
+    void commandKeyStroke(XPLMCommandKeyID inKey);
+    void commandButtonPress(XPLMCommandButtonID  inButton);
+    void commandButtonRelease(XPLMCommandButtonID  inButton);
 
     /// @brief Write an integer DataRef.
     /// @param handle Handle of the DataRef to write
@@ -237,7 +252,7 @@ public:
     void requestUpdatesType(dref_handle handle, int type, int rate, float precision, int arrayElement);
 
     /// @brief set scaling factor for a DataRef (offload mapping to the plugin)
-    void setScaling(dref_handle handle, int inLow, int inHigh, int outLow, int outHigh);
+    void setScaling(dref_handle handle, long int inLow, long int inHigh, long int outLow, long int outHigh);
 
     /// @brief Register a DataRef and obtain a handle
     /// @param datarefName Name of the DataRef (or abbreviation)
@@ -263,8 +278,10 @@ public:
     /// @brief Request a reset from the plugin
     void sendResetRequest(void);
 
-    void flightLoopPause(void);
-    void flightLoopResume(void);
+    void dataFlowPause(void);           // Tell plugin to pause flow of data to device
+    void dataFlowResume(void);          // resume
+    void setDataFlowSpeed(unsigned long);       // request speed throttling on data in bytes per second.  Understand that a full packet will always be sent but the throttling occurs between packets.
+    int getBufferStatus(void);          // returns number of bytes in receive buffer
 
     /// @brief Cyclic loop handler, must be called in idle task
     /// @return Connection status
@@ -279,8 +296,9 @@ private:
     void _transmitPacket();
     void _sendname();
     void _sendVersion();
-    void _sendPacketVoid(int command, int handle);        // just a command with a handle
-    void _sendPacketString(int command, const char *str); // send a string
+    void _sendPacketVoid(int command, int handle);              // just a command with a handle
+    void _sendPacketVoid(int command);                          // Update 2024 May 23:  just a command 
+    void _sendPacketString(int command, const char *str);       // send a string
     int _parseInt(int *outTarget, char *inBuffer, int parameter);
     int _parseInt(long *outTarget, char *inBuffer, int parameter);
     int _parseFloat(float *outTarget, char *inBuffer, int parameter);

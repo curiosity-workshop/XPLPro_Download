@@ -23,10 +23,35 @@ Known issues:
 
 Wish List
 
+    -- additional scaling points for data (some gauges are not linear) and individual scales for array element datarefs
     -- exclusion of com ports, some com port devices cause issues when opened/closed/opened
 
 
 Updates:
+
+-- XP.setDataFlowSpeed(1000);  // max bytes per second plugin will send.  
+
+
+
+-- Library now sends data type in the inStruct.  It follows the native xplane format:
+
+    #define xplmType_Unknown	0	//  Data of a type the current XPLM doesn't do.
+    #define xplmType_Int	    1	//  A single 4 - byte integer, native endian.
+    #define xplmType_Float	    2	//  A single 4 - byte float, native endian.
+    #define xplmType_Double	    4	//  A single 8 - byte double, native endian.
+    #define xplmType_FloatArray	8	//  An array of 4 - byte floats, native endian.
+    #define xplmType_IntArray	16  //	An array of 4 - byte integers, native endian.
+    #define xplmType_Data	    32  //	A variable block of data.
+
+-- fixed plugin bug with data types for comparing
+-- in Serial log unprintable characters now are represented by their hex value (0xXX)
+    void dataFlowPause(void);           // Mostly for internal use but can be useful if your device is busy updating a display screen or whatever
+    void dataFlowResume(void);
+    int getBufferStatus(void);          // returns number of bytes in receive buffer
+    void setDataFlowSpeed(unsigned long int);       // Set max bytes to send per second.  The plugin will always send a complete packet then wait until 
+            `                                       // the time catches up (in terms of flight loops) so take that into consideration.
+
+    -- when requesting updates to data datarefs, specify the maximum digits to return in the precision specifier.
 
     16 May 2024
 

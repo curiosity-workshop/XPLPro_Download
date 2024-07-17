@@ -1,36 +1,31 @@
-//   XPLSwitches.h - XPLPro Add-on Library for simple switch connections 
+//   XPLRotarySwitch.h - XPLPro Add-on Library for rotary switch connections 
 //   Created by Curiosity Workshop, Michael Gerlicher,  2024
 //   
 //   To report problems, download updates and examples, suggest enhancements or get technical support, please visit:
 //      discord:  https://discord.gg/gzXetjEST4
 //      patreon:  www.patreon.com/curiosityworkshop
 
-#ifndef XPLSwitches_h
-#define XPLSwitches_h
+#ifndef XPLRotarySwitch_h
+#define XPLRotarySwitch_h
 
 // Parameters around the interface
-#define XPLSWITCHES_SENDTOHANDLER   0                   // Default is to send switch events to the supplied handler.  This always occurs regardless.
-#define XPLSWITCHES_DATAREFWRITE    1                   // Update dataref with switch status 
-#define XPLSWITCHES_COMMANDTRIGGER  2                   // Trigger command with pressed
-#define XPLSWITCHES_COMMANDSTARTEND 3                   // Start command when pressed, end command when released
-#define XPLSWITCHES_DATAREFWRITE_INVERT 4               // same as datarefwrite but invert the signal
 
 #define XPLSWITCHES_DEBOUNCETIME 50
 #define XPLSWITCHES_PRESSED      0
 #define XPLSWITCHES_RELEASED     1
 
-#ifndef XPLSWITCHES_MAXSWITCHES 
-#define XPLSWITCHES_MAXSWITCHES     40                  //Default to 40.  This costs ~400 bytes.
+#ifndef XPLROTARYSWITCH_MAXPINS  
+#define XPLROTARYSWITCH_MAXPINS     6                  //Default to 6. 
 #endif
 
 
 /// @brief Core class for the XPLPro Switches Addon
-class XPLSwitches
+class XPLRotarySwitch
 {
 public:
     /// @brief Constructor
     /// @param switchHandler, Function called when pin activity is detected, or NULL if not needed
-    XPLSwitches(void (*switchHandler)(int pin, int switchValue));
+    XPLRotarySwitch(void (*switchHandler)(int pin, int switchValue));
 
     /// <summary>
     /// @brief begin
@@ -38,8 +33,10 @@ public:
     /// <param name="xplpro"></param>
     void begin(XPLPro* xplpro);
 
-    int addPin(int inPin, byte inMode, int inHandle);
-    int addPin(int inPin, byte inMode, int inHandle, int inElement);
+
+
+    int addPin(int inPin, int inValue, int inHandle);
+    int addPin(int inPin, int inValue, int inHandle, int inElement);
 
     int getHandle(int inPin);
 
