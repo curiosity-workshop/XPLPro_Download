@@ -1,0 +1,24 @@
+Put your dataref and command abbreviations here.  
+
+Format: abbreviated=full_length
+
+Abbreviated name is arbitrary and up to you, remember they are case sensitive and spaces are not allowed.
+In my examples I group the lights with the prefix LT, annunciators with AN, etc.
+
+LTbcn = sim/cockpit/electrical/beacon_lights_on
+LTnav = sim/cockpit/electrical/nav_lights_on
+LTland = sim/cockpit/electrical/landing_lights_on
+LTstrobe = sim/cockpit/electrical/strobe_lights_on
+LTtaxi = sim/cockpit/electrical/taxi_light_on
+LTtax = sim/cockpit/electrical/taxi_light_on
+LTlnd = sim/cockpit/electrical/landing_lights_on
+LTnav = sim/cockpit/electrical/nav_lights_on
+LTstr = sim/cockpit/electrical/strobe_lights_on
+
+ANmc = sim/cockpit/warnings/annunciators/master_caution
+
+Commands can be abbreviated as well:
+
+CMDpause = sim/operation/pause_toggle
+CMDtoga = sim/autopilot/take_off_go_around
+CMDgearToggle = sim/flight_controls/landing_gear_toggle
